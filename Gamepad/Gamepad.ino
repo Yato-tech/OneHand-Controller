@@ -27,7 +27,7 @@ const int delayBetweenSamples = 4;    // Delay in milliseconds between samples
 const int delayBetweenHIDReports = 5; // Additional delay in milliseconds between HID reports
 
 // Dead zone and center zone thresholds
-const int DEADZONE_MIN = 110;   // Anything below this is a dead zone
+const int DEADZONE_MIN = 0;   // Anything below this is a dead zone
 const int DEADZONE_MAX = 4095;  // Anything above this is a dead zone
 const int CENTER_MIN = 2200;    // Lower bound of center zone
 const int CENTER_MAX = 2299;    // Upper bound of center zone
@@ -73,41 +73,69 @@ void loop() {
             vryValue += vryValues[i];
             delay(delayBetweenSamples);
         }
-        
 
-        // Calculate the averages
+        // Calculate the averages (noise reduction)
         vrxValue = vrxValue / numberOfSamples;
         vryValue = vryValue / numberOfSamples;
 
-        // Apply dead zones
+        // Apply dead zones for joystick axes
         if (vrxValue < DEADZONE_MIN || vrxValue > DEADZONE_MAX || 
             (vrxValue >= CENTER_MIN && vrxValue <= CENTER_MAX)) {
-            vrxValue = 14000; // Centered or dead zone, set to 0
+            vrxValue = 14000; // Centered or dead zone, set to 14000
         } else {
-            // Map analog reading from 0 ~ 4095 to -32767 ~ 32767 for use as axis readings
+            // Map analog reading from 110 ~ 4095 to 0 ~ 28000 for use as axis readings
             vrxValue = map(vrxValue, DEADZONE_MIN, DEADZONE_MAX, 0, 28000);
         }
 
         if (vryValue < DEADZONE_MIN || vryValue > DEADZONE_MAX || 
             (vryValue >= CENTER_MIN && vryValue <= CENTER_MAX)) {
-            vryValue = 14000; // Centered or dead zone, set to 0
+            vryValue = 14000;
         } else {
-            // Map analog reading from 0 ~ 4095 to -32767 ~ 32767 for use as axis readings
             vryValue = map(vryValue, DEADZONE_MIN, DEADZONE_MAX, 0, 28000);
         }
 
         // Get IMU data
+        uint8_t system, gyro, accel, mg = 0;
+        bno.getCalibration(&system, &gyro, &accel, &mg);
         imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-        int16_t imuX = map(euler.x(), -180, 180, -32767, 32767); // Map to gamepad axis range
-        int16_t imuY = map(euler.y(), -180, 180, -32767, 32767);
-        int16_t imuZ = map(euler.z(), -180, 180, -32767, 32767);
+        int16_t imuX = static_cast<int16_t>(euler.x()); // Yaw, X axis for joystick
+        int16_t imuY = static_cast<int16_t>(euler.y()); // Roll, Y axis for joystick
+        int16_t imuZ = static_cast<int16_t>(euler.z()); // Pitch
 
-        Serial.print("X: ");
-        Serial.print(vrxValue);
+        // Shift and wrap the Yaw (imuX) by 180 degrees
+        imuX = imuX + 180;
+        if (imuX >= 360) {
+            imuX -= 360; // Ensure it wraps around within 0-360 degrees
+        }
+
+        // Apply custom dead zones and center zones for yaw (X-axis)
+        if (imuX >= 175 && imuX <= 185) {
+            imuX = 180; // Center zone, map to the midpoint for more precise control
+        }
+
+        // Map the IMU values to 0-28000 range
+        // Use a narrower input range for increased sensitivity
+        imuX = map(imuX, 140, 220, 0, 28000); // Map 90-270 degrees to 0-28000
+        imuY = map(imuY, -45, 45, 0, 28000); // Example: Narrower range for Roll (Y-axis)
+        imuZ = map(imuZ, -90, 90, 0, 28000); // Example: Narrower range for Pitch (Z-axis)
+
+        Serial.print(" X: ");
+        Serial.print(imuX);
         Serial.print(" Y: ");
-        Serial.println(vryValue);
+        Serial.print(imuY);
+        Serial.print(" Z: ");
+        Serial.print(imuZ);
+        Serial.print(",");
+        Serial.print(accel);
+        Serial.print(",");
+        Serial.print(gyro);
+        Serial.print(",");
+        Serial.print(mg);
+        Serial.print(",");
+        Serial.println(system);
+
         // Set axes values for joystick and IMU data
-        bleGamepad.setAxes(vrxValue, vryValue, imuX, imuY, imuZ, 0, 0, 0);
+        bleGamepad.setAxes(vrxValue, vryValue, SW_PIN, imuZ, imuX, imuY, 0, 0); // Left Thumb X, Left Thumb Y, Left Trigger, Right Trigger Y, Left Thumb X, Right Thumb Y, Slider 1, Slider 2
 
         // Read digital value from joystick switch
         bool swState = digitalRead(SW_PIN) == LOW; // Assuming the switch is active low
