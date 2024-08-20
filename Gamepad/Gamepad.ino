@@ -100,7 +100,7 @@ void loop() {
         imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
         int16_t imuX = static_cast<int16_t>(euler.x()); // Yaw, X axis for joystick
         int16_t imuY = static_cast<int16_t>(euler.y()); // Roll, Y axis for joystick
-        int16_t imuZ = static_cast<int16_t>(euler.z()); // Pitch
+        int16_t imuZ = static_cast<int16_t>(euler.z()); // Pitch, trigger
 
         // Shift and wrap the Yaw (imuX) by 180 degrees
         imuX = imuX + 180;
@@ -113,26 +113,22 @@ void loop() {
             imuX = 180; // Center zone, map to the midpoint for more precise control
         }
 
+        // Apply custom dead zones and center zones for Roll (Y-axis)
+        if (imuY >= -5 && imuY <= 5) {
+            imuY = 0; // Center zone, map to the midpoint for more precise control
+        }
+        else if (imuY <= -45) {
+            imuY = -45; // Center zone, map to the midpoint for more precise control
+        }
+        else if (imuY >= 45) {
+            imuY = 45; // Center zone, map to the midpoint for more precise control
+        }
+
         // Map the IMU values to 0-28000 range
         // Use a narrower input range for increased sensitivity
         imuX = map(imuX, 140, 220, 0, 28000); // Map 90-270 degrees to 0-28000
         imuY = map(imuY, -45, 45, 0, 28000); // Example: Narrower range for Roll (Y-axis)
         imuZ = map(imuZ, -90, 90, 0, 28000); // Example: Narrower range for Pitch (Z-axis)
-
-        Serial.print(" X: ");
-        Serial.print(imuX);
-        Serial.print(" Y: ");
-        Serial.print(imuY);
-        Serial.print(" Z: ");
-        Serial.print(imuZ);
-        Serial.print(",");
-        Serial.print(accel);
-        Serial.print(",");
-        Serial.print(gyro);
-        Serial.print(",");
-        Serial.print(mg);
-        Serial.print(",");
-        Serial.println(system);
 
         // Set axes values for joystick and IMU data
         bleGamepad.setAxes(vrxValue, vryValue, SW_PIN, imuZ, imuX, imuY, 0, 0); // Left Thumb X, Left Thumb Y, Left Trigger, Right Trigger Y, Left Thumb X, Right Thumb Y, Slider 1, Slider 2
