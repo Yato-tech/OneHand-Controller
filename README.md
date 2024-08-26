@@ -17,7 +17,7 @@ This project implements a one-handed controller using an ESP32, a joystick, butt
 - **Buttons**: Four push buttons are used to simulate gamepad button inputs.
 - **Bluetooth Connectivity**: The controller is recognized as a Bluetooth gamepad, which can be used with various devices like PCs, smartphones, etc.
 
-## Wiring
+## My Wiring
 
 - **Joystick**: 
   - VRX (X-axis) -> GPIO 13
@@ -44,7 +44,7 @@ This project implements a one-handed controller using an ESP32, a joystick, butt
 4. Clone this repository or download the ZIP file and extract it.
 
 ```bash
-git clone https://github.com/yourusername/onehanded-controller.git
+git clone https://github.com/Yato-tech/OneHand-Controller.git
 ```
 
 5. Open the MyProject.ino file in the Arduino IDE.
@@ -71,6 +71,13 @@ Bluetooth Connection Issues: Make sure that the ESP32 is properly configured for
 Joystick/Buttons Not Responding: Verify that all GPIO pins are correctly assigned and wired. Ensure that the ESP32 is receiving analog inputs from the joystick.
 Contributing
 Feel free to open an issue or submit a pull request for any improvements or bug fixes.
+
+## Future Plans
+- [ ] Integrated Battery: incorporating a rechargeable battery, enabling full wireless operation.
+- [ ] Develop Custom PCB: to reduce weight and space.
+- [ ] Design a housing: protective case.
+- [ ] Complementary Controller: Develop an additional counterpart to balance the controller, reducing potential sensory overload from one-handed operation.
+
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
